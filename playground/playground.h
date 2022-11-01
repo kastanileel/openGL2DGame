@@ -18,6 +18,6 @@ void updateAnimationLoop(); //<<< updates the animation loop
 bool initializeWindow(); //<<< initializes the window using GLFW and GLEW
 bool initializeVertexbuffer(); //<<< initializes the vertex buffer array and binds it OpenGL
 bool cleanupVertexbuffer(); //<<< frees all recources from the vertex buffer
-bool closeWindow(); //<<< Closes the OpenGL window and terminates GLFW
+bool closeWindow();
 
 #endif

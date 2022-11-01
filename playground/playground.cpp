@@ -1,5 +1,6 @@
 #include "playground.h"
 
+
 // Include standard headers
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,13 +10,33 @@
 GLFWwindow* window;
 
 // Include GLM
-#include <glm/glm.hpp>
+#include <glm/glm.hpp>                                         
 using namespace glm;
-
+#include <iostream>
 #include <common/shader.hpp>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <common/stb_image.h>
+
+ 
+
+float x = 0;
+float y = 0;
+
+float xRes = 1920;
+float yRes = 1080;
+
+glm::mat2 myR;
+
+GLuint uvbuffer;
+GLuint textureSamplerID;
+GLuint texture;
+
+
 
 int main( void )
 {
+   
   //Initialize window
   bool windowInitialized = initializeWindow();
   if (!windowInitialized) return -1;
@@ -27,26 +48,106 @@ int main( void )
   // Create and compile our GLSL program from the shaders
   programID = LoadShaders("SimpleVertexShader.vertexshader", "SimpleFragmentShader.fragmentshader");
 
+  int width, height, nrChannels;
+  unsigned char* data = stbi_load("../container.jpg", &width, &height, &nrChannels, 0);
+  
+ 
+
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+ 
 	//start animation loop until escape key is pressed
 	do{
 
     updateAnimationLoop();
-
+    
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );
-
+    
 	
   //Cleanup and close window
   cleanupVertexbuffer();
   glDeleteProgram(programID);
-	closeWindow();
+	
+  closeWindow();
   
 	return 0;
 }
 
 void updateAnimationLoop()
 {
+
+    
+    
+    
+   /* glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    // set the texture wrapping/filtering options (on the currently bound texture object)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // load and generate the texture
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load("../container.jpg", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+        glGenerateTextureMipmap(GL_TEXTURE_2D);
+
+        std::cout << "image loades sucessfully";
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+    */
+
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+
+    }
+    if (glfwGetKey(window, GLFW_KEY_W)) {
+        y += 0.001f;
+        myR = glm::mat2(1, 0,
+            0, 1);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S)) {
+        myR = glm::mat2(-1, 0,
+            0, -1);
+        y -= 0.001f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A)) {
+        x -= 0.001f;
+        myR = glm::mat2(0, 1,
+            -1, 0);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D)) {
+        x += 0.001f;
+        myR = glm::mat2(0, -1,
+            1, 0);
+    }
+
+    glm::mat4 mv = glm::mat4(
+        1, 0, 0, x,
+        0, 1, 0, y,
+        0, 0, 1, 0,
+        0, 0, 0, 1);
+
+   
+    GLfloat matrix = glGetUniformLocation(programID, "mv");
+    glUniformMatrix4fv(matrix, 1, GL_FALSE, &mv[0][0]);
+
+  initializeVertexbuffer();
   // Clear the screen
   glClear(GL_COLOR_BUFFER_BIT);
 
@@ -65,6 +166,19 @@ void updateAnimationLoop()
     (void*)0            // array buffer offset
   );
 
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glUniform1i(textureSamplerID, 0);
+  glEnableVertexAttribArray(2);
+  glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+  glVertexAttribPointer(
+      2,
+      2,
+      GL_FLOAT,
+      GL_FALSE,
+      0,
+      (void*)0
+  );
   // Draw the triangle !
   glDrawArrays(GL_TRIANGLES, 0, vertexbuffer_size); // 3 indices starting at 0 -> 1 triangle
 
@@ -73,6 +187,8 @@ void updateAnimationLoop()
   // Swap buffers
   glfwSwapBuffers(window);
   glfwPollEvents();
+  
+ 
 }
 
 bool initializeWindow()
@@ -92,7 +208,7 @@ bool initializeWindow()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   // Open a window and create its OpenGL context
-  window = glfwCreateWindow(1024, 768, "Tutorial 02 - Red triangle", NULL, NULL);
+  window = glfwCreateWindow(xRes  , yRes, "Tutorial 02 - RED triangle", NULL, NULL);
   if (window == NULL) {
     fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
     getchar();
@@ -120,19 +236,79 @@ bool initializeWindow()
 
 bool initializeVertexbuffer()
 {
-  glGenVertexArrays(1, &VertexArrayID);
-  glBindVertexArray(VertexArrayID);
+    glGenVertexArrays(1, &VertexArrayID);
+    glBindVertexArray(VertexArrayID);
 
-  vertexbuffer_size = 3;
-  static const GLfloat g_vertex_buffer_data[] = {
-    -1.0f, -1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    0.0f,  1.0f, 0.0f,
-  };
+    vertexbuffer_size = 6;
 
-  glGenBuffers(1, &vertexbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    glm::vec2 triangleVertice1 = glm::vec2(0.0f, 0.0f);
+    glm::vec2 triangleVertice2 = glm::vec2(0.0f, 1.0f);
+    glm::vec2 triangleVertice3 = glm::vec2(1.0f, 1.0f);
+
+    glm::vec2 secTriangleVertice1 = glm::vec2(0.0f,0.0f);
+    glm::vec2 secTriangleVertice2 = glm::vec2(1.0f, 1.0f);
+    glm::vec2 secTriangleVertice3 = glm::vec2(1.0f, 0.0f);
+
+    /* glm::mat2 mySResize = glm::mat2(1, 0,
+         0, xRes/yRes);
+
+
+     glm::mat2 myS = glm::mat2(0.1, 0,
+                               0, 0.1);
+
+     myS = myS * mySResize;
+
+     glm::vec2 myT = glm::vec2(x,
+                               y);
+
+     myT = myT * mySResize;
+
+     triangleVertice1 = myR * triangleVertice1 * myS  + myT;
+     triangleVertice2 = myR * triangleVertice2 * myS  + myT;
+     triangleVertice3 = myR * triangleVertice3 * myS  + myT;
+
+     */
+    static GLfloat g_vertex_buffer_data[18];
+    g_vertex_buffer_data[0] = triangleVertice1[0];
+    g_vertex_buffer_data[1] = triangleVertice1[1];
+    g_vertex_buffer_data[2] = 0.0f;
+    g_vertex_buffer_data[3] = triangleVertice2[0];
+    g_vertex_buffer_data[4] = triangleVertice2[1];
+    g_vertex_buffer_data[5] = 0.0f;
+    g_vertex_buffer_data[6] = triangleVertice3[0];
+    g_vertex_buffer_data[7] = triangleVertice3[1];
+    g_vertex_buffer_data[8] = 0.0f;
+    g_vertex_buffer_data[9] = secTriangleVertice1[0];
+    g_vertex_buffer_data[10] = secTriangleVertice1[1];
+    g_vertex_buffer_data[11] = 0.0f;
+    g_vertex_buffer_data[12] = secTriangleVertice2[0];
+    g_vertex_buffer_data[13] = secTriangleVertice2[1];
+    g_vertex_buffer_data[14] = 0.0f;
+    g_vertex_buffer_data[15] = secTriangleVertice3[0];
+    g_vertex_buffer_data[16] = secTriangleVertice3[1];
+    g_vertex_buffer_data[17] = 0.0f;
+
+    glGenBuffers(1, &vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+
+   
+
+    textureSamplerID = glGetUniformLocation(programID, "myTextureSampler");
+
+    static const GLfloat g_uv_buffer_date[] = {
+        0.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f
+    };
+
+    glGenBuffers(1, &uvbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_date), g_uv_buffer_date, GL_STATIC_DRAW);
 
   return true;
 }
