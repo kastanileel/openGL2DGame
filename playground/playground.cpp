@@ -19,6 +19,7 @@ using namespace glm;
 #include <common/stb_image.h>
 #include <chrono>
 #include <vector>
+#include <memory>
 
 
 //enums for state machine behaviour
@@ -336,7 +337,7 @@ public:
 // public variables
 std::chrono::steady_clock::time_point lastUpdate;
 
-std::vector<GameObject*> gameObjects;
+std::vector<std::shared_ptr<GameObject>> gameObjects;
 PlayerDirection userInput = none;
 
 int main( void )
@@ -354,14 +355,14 @@ int main( void )
       0, 0, 0, 1
       );
 
-  Player p = Player(10, trans);
-  gameObjects.push_back(&p);
+  std::shared_ptr<Player> p =  std::make_shared<Player>(10, trans);
+   gameObjects.push_back(p);
  
 
  
   for (int i = 0; i < gameObjects.size(); i ++)
   {
-      gameObjects[i]->initializeVAOs();
+      gameObjects[i].get()->initializeVAOs();
   }
 
   // Create and compile our GLSL program from the shaders
@@ -375,22 +376,20 @@ int main( void )
             lastUpdate = std::chrono::steady_clock::now();
             updateAnimationLoop();
 
-            if (!test) {
-                trans = glm::mat4(
-                    2, 0, 0, 0,
-                    0, 1, 0, 0,
+            if (test) {
+                glm::mat4 transr = glm::mat4(
+                    1, 0, 0, 1,
+                    0, 1, 0, 1,
                     0, 0, 1, 0,
                     0, 0, 0, 1
                 );
-                Player p = Player(1, trans);
-                p.initializeVAOs();
-                gameObjects.resize(2);
-                gameObjects.push_back(&p);
+                std::shared_ptr<Player> p = std::make_shared<Player>(10, transr);
+
+                p.get()->initializeVAOs();
+                gameObjects.push_back(p);
                 
                 
-                //for (int i = 0; i < gameObjects.size(); i++) {
-                  //  std::cout << i;
-                //}
+               
                 test = false;
             }
         }
@@ -402,7 +401,7 @@ int main( void )
   //Cleanup and close window
     for (int i = 0; i < gameObjects.size(); i++)
     {
-        gameObjects[i]->cleanupVAOs();
+        gameObjects[i].get()->cleanupVAOs();
     }
     glDeleteProgram(programID);
 	
@@ -436,14 +435,10 @@ void updateAnimationLoop()
         x += 0.01f;
     }
 
-    
-        
-     gameObjects[0]->update(&userInput, &shooting);
-    
-     if (!test) {
-         gameObjects[1]->update(&userInput, &shooting);
-
+    for (int i = 0; i < gameObjects.size(); i++) {
+        gameObjects[i].get()->update(&userInput, &shooting);
     }
+     
 
 
   // Swap buffers
