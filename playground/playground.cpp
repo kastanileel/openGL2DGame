@@ -31,6 +31,8 @@ float y = 0;
 float xRes = 1920;
 float yRes = 1080;
 
+bool test = true;
+
 class GameObject {
 public:
     //some global variables for handling the vertex sbuffer
@@ -111,7 +113,6 @@ public:
           
             playerAnimationState = !playerAnimationState;
            
-            std::cout << playerAnimationState;
             playerDirection = *userInput;
 
             data = loadSpriteBasedOnState();
@@ -340,6 +341,7 @@ PlayerDirection userInput = none;
 
 int main( void )
 {
+
    
   //Initialize window
   bool windowInitialized = initializeWindow();
@@ -354,6 +356,7 @@ int main( void )
 
   Player p = Player(10, trans);
   gameObjects.push_back(&p);
+ 
 
  
   for (int i = 0; i < gameObjects.size(); i ++)
@@ -371,6 +374,25 @@ int main( void )
         if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 5) {
             lastUpdate = std::chrono::steady_clock::now();
             updateAnimationLoop();
+
+            if (!test) {
+                trans = glm::mat4(
+                    2, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1
+                );
+                Player p = Player(1, trans);
+                p.initializeVAOs();
+                gameObjects.resize(2);
+                gameObjects.push_back(&p);
+                
+                
+                //for (int i = 0; i < gameObjects.size(); i++) {
+                  //  std::cout << i;
+                //}
+                test = false;
+            }
         }
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
@@ -382,9 +404,9 @@ int main( void )
     {
         gameObjects[i]->cleanupVAOs();
     }
-  glDeleteProgram(programID);
+    glDeleteProgram(programID);
 	
-  closeWindow();
+    closeWindow();
   
 	return 0;
 }
@@ -414,10 +436,15 @@ void updateAnimationLoop()
         x += 0.01f;
     }
 
-    for (int i = 0; i < gameObjects.size(); i++)
-    {
-        gameObjects[i]->update(&userInput, &shooting);
+    
+        
+     gameObjects[0]->update(&userInput, &shooting);
+    
+     if (!test) {
+         gameObjects[1]->update(&userInput, &shooting);
+
     }
+
 
   // Swap buffers
   glfwSwapBuffers(window);
