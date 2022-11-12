@@ -110,6 +110,9 @@ public:
 
         glDisableVertexAttribArray(0);
     }
+    
+    virtual bool initializeVAOs() = 0;
+    virtual bool cleanupVAOs() = 0;
     virtual bool initializeColorbuffer()
     {
         static GLfloat g_color_buffer_data[18];
@@ -153,10 +156,8 @@ public:
     virtual bool initializeVertexbuffer()
     {
 
-
         glGenVertexArrays(1, &VertexArrayID);
         glBindVertexArray(VertexArrayID);
-
 
 
         vertexbuffer_size = 6;
@@ -167,15 +168,6 @@ public:
         glm::vec2 triangleVertice4 = glm::vec2(2.0f, 1.0f);
         glm::vec2 triangleVertice5 = glm::vec2(1.0f, -1.0f);
         glm::vec2 triangleVertice6 = glm::vec2(0.0f, 1.0f);
-
-
-
-
-
-
-
-
-
 
         static GLfloat g_vertex_buffer_data[18];
         g_vertex_buffer_data[0] = triangleVertice1[0];
@@ -320,7 +312,6 @@ public:
         return true;
 
     }
-
     bool initializeColorbuffer() override {
         static GLfloat g_color_buffer_data[9];
         g_color_buffer_data[0] = 1;
@@ -342,6 +333,9 @@ public:
 
         return true;
     }
+
+    bool initializeVAOs() override{}
+    bool cleanupVAOs() override{}
 
 
 };
@@ -744,25 +738,6 @@ bool initializeVertexbuffer()
     glm::vec2 secTriangleVertice2 = glm::vec2(1.0f, 1.0f);
     glm::vec2 secTriangleVertice3 = glm::vec2(1.0f, 0.0f);
 
-    /* glm::mat2 mySResize = glm::mat2(1, 0,
-         0, xRes/yRes);
-
-
-     glm::mat2 myS = glm::mat2(0.1, 0,
-                               0, 0.1);
-
-     myS = myS * mySResize;
-
-     glm::vec2 myT = glm::vec2(x,
-                               y);
-
-     myT = myT * mySResize;
-
-     triangleVertice1 = myR * triangleVertice1 * myS  + myT;
-     triangleVertice2 = myR * triangleVertice2 * myS  + myT;
-     triangleVertice3 = myR * triangleVertice3 * myS  + myT;
-
-     */
     static GLfloat g_vertex_buffer_data[18];
     g_vertex_buffer_data[0] = triangleVertice1[0];
     g_vertex_buffer_data[1] = triangleVertice1[1];
