@@ -62,6 +62,7 @@ add_executable(playground
 	common/shader.cpp
 	common/shader.hpp
 	common/stb_image.h
+	
 )
 target_link_libraries(playground
 	${ALL_LIBS}

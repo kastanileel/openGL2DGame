@@ -19,6 +19,7 @@ using namespace glm;
 #define STB_IMAGE_IMPLEMENTATION
 #include <common/stb_image.h>
 #include <chrono>
+#include <vector>
 
  
 std::chrono::steady_clock::time_point lastUpdate;
@@ -36,6 +37,463 @@ GLuint uvbuffer;
 GLuint textureSamplerID;
 GLuint texture;
 unsigned char* data;
+
+
+class GameObject {
+public:
+    //some global variables for handling the vertex sbuffer
+    GLuint vertexbuffer;
+
+    //modified
+    GLuint colorbuffer;
+
+
+    GLuint VertexArrayID;
+    GLuint vertexbuffer_size;
+    glm::mat4 translation;
+    float speed;
+    float radius;
+    bool isActive;
+
+
+
+    virtual void update(glm::mat4* mvp) = 0;
+    void draw(float scale) {
+
+        glm::mat4 mvp_matrix = translation;
+        mvp_matrix = mvp_matrix * glm::mat4(
+            scale, 0, 0, 0,
+            0, scale, 0, 0,
+            0, 0, scale, 0,
+            0, 0, 0, 1
+        );
+
+        mvp_matrix[0][3] = mvp_matrix[0][3] / scale;
+        mvp_matrix[1][3] = mvp_matrix[1][3] / scale;
+
+
+        GLfloat matrix = glGetUniformLocation(programID, "Translation");
+        glUniformMatrix4fv(matrix, 1, GL_FALSE, &mvp_matrix[0][0]);
+
+        // Use our shader
+        glUseProgram(programID);
+
+        // 1rst attribute buffer : vertices
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glVertexAttribPointer(
+            0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+            3,                  // size
+            GL_FLOAT,           // type
+            GL_FALSE,           // normalized?
+            0,                  // stride
+            (void*)0            // array buffer offset
+        );
+
+        //2nd attribute buffer : color
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+        glVertexAttribPointer(
+            1,
+            3,
+            GL_FLOAT,
+            GL_FALSE,
+            0,
+            (void*)0
+        );
+
+
+
+
+        // Draw the triangle !
+        glDrawArrays(GL_TRIANGLES, 0, vertexbuffer_size); // 3 indices starting at 0 -> 1 triangle
+
+        glDisableVertexAttribArray(0);
+    }
+    virtual bool initializeColorbuffer()
+    {
+        static GLfloat g_color_buffer_data[18];
+        g_color_buffer_data[0] = 1;
+        g_color_buffer_data[1] = 0;
+        g_color_buffer_data[2] = 0;
+
+        g_color_buffer_data[3] = 1;
+        g_color_buffer_data[4] = 0;
+        g_color_buffer_data[5] = 0;
+
+        g_color_buffer_data[6] = 1;
+        g_color_buffer_data[7] = 0;
+        g_color_buffer_data[8] = 0;
+
+        g_color_buffer_data[9] = 0;
+        g_color_buffer_data[10] = 1;
+        g_color_buffer_data[11] = 0;
+
+        g_color_buffer_data[12] = 0;
+        g_color_buffer_data[13] = 1;
+        g_color_buffer_data[14] = 0;
+
+        g_color_buffer_data[15] = 0;
+        g_color_buffer_data[16] = 1;
+        g_color_buffer_data[17] = 0;
+
+
+
+
+        glDeleteBuffers(1, &colorbuffer);
+        glGenBuffers(1, &colorbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
+
+
+
+        return true;
+    }
+
+    virtual bool initializeVertexbuffer()
+    {
+
+
+        glGenVertexArrays(1, &VertexArrayID);
+        glBindVertexArray(VertexArrayID);
+
+
+
+        vertexbuffer_size = 6;
+        glm::vec2 triangleVertice1 = glm::vec2(-1.0f, -1.0f);
+        glm::vec2 triangleVertice2 = glm::vec2(1.0f, -1.0f);
+        glm::vec2 triangleVertice3 = glm::vec2(0.0f, 1.0f);
+
+        glm::vec2 triangleVertice4 = glm::vec2(2.0f, 1.0f);
+        glm::vec2 triangleVertice5 = glm::vec2(1.0f, -1.0f);
+        glm::vec2 triangleVertice6 = glm::vec2(0.0f, 1.0f);
+
+
+
+
+
+
+
+
+
+
+        static GLfloat g_vertex_buffer_data[18];
+        g_vertex_buffer_data[0] = triangleVertice1[0];
+        g_vertex_buffer_data[1] = triangleVertice1[1];
+        g_vertex_buffer_data[2] = 0.0f;
+
+        g_vertex_buffer_data[3] = triangleVertice2[0];
+        g_vertex_buffer_data[4] = triangleVertice2[1];
+        g_vertex_buffer_data[5] = 0.0f;
+
+        g_vertex_buffer_data[6] = triangleVertice3[0];
+        g_vertex_buffer_data[7] = triangleVertice3[1];
+        g_vertex_buffer_data[8] = 0.0f;
+
+
+        g_vertex_buffer_data[9] = triangleVertice4[0];
+        g_vertex_buffer_data[10] = triangleVertice4[1];
+        g_vertex_buffer_data[11] = 0.0f;
+
+        g_vertex_buffer_data[12] = triangleVertice5[0];
+        g_vertex_buffer_data[13] = triangleVertice5[1];
+        g_vertex_buffer_data[14] = 0.0f;
+
+        g_vertex_buffer_data[15] = triangleVertice6[0];
+        g_vertex_buffer_data[16] = triangleVertice6[1];
+        g_vertex_buffer_data[17] = 0.0f;
+
+
+
+
+
+
+        glGenBuffers(1, &vertexbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+        return true;
+    }
+
+    bool cleanupVertexbuffer()
+    {
+        // Cleanup VBO
+        glDeleteBuffers(1, &vertexbuffer);
+
+        glDeleteVertexArrays(1, &VertexArrayID);
+        return true;
+    }
+
+    bool cleanupColorbuffer() {
+        glDeleteBuffers(1, &colorbuffer);
+        glDeleteVertexArrays(1, &VertexArrayID);
+        return true;
+    }
+
+
+    //detect collisions with other game objects and return all objects that are colliding
+    std::vector<GameObject*> checkCollisions(std::vector<GameObject*> gameObjects) {
+        std::vector<GameObject*> collidedObjects;
+
+        if (isActive) {
+            for each (GameObject * cur in gameObjects)
+            {
+                if (cur != this) {
+                    float dx = translation[0][3] - cur->translation[0][3];
+                    float dy = translation[1][3] - cur->translation[1][3];
+
+
+                    float dist = sqrt(dx * dx + dy * dy);
+                    float mindistance = radius + cur->radius;
+                    if (dist < mindistance) {
+                        collidedObjects.push_back(cur);
+                        //std::cout << "Collision detected!" << std::endl;
+                    }
+
+
+                }
+            }
+        }
+
+        return collidedObjects;
+    }
+
+};
+
+
+class Player : public GameObject {
+    int hitpoints;
+
+public:
+    Player(int hp, glm::mat4 translation_g) {
+        hitpoints = hp;
+        translation = translation_g;
+        speed = 0.02f;
+        radius = 0.1f;
+        isActive = true;
+    }
+    void update(glm::mat4* mvp) override {
+        glm::mat4 finished_mvp = *mvp;
+
+        finished_mvp[0][3] = finished_mvp[0][3] * speed;
+        finished_mvp[1][3] = finished_mvp[1][3] * speed;
+
+        translation = translation * finished_mvp;
+
+        glm::mat4 test = *mvp;
+
+        //std::cout << test[0][3] << std::endl;
+        //std::cout << test[1][3] << std::endl;
+        draw(0.1f);
+
+
+    }
+    bool initializeVertexbuffer() override {
+
+        glGenVertexArrays(1, &VertexArrayID);
+        glBindVertexArray(VertexArrayID);
+
+
+
+        vertexbuffer_size = 3;
+        glm::vec2 triangleVertice1 = glm::vec2(-1.0f, -1.0f);
+        glm::vec2 triangleVertice2 = glm::vec2(1.0f, -1.0f);
+        glm::vec2 triangleVertice3 = glm::vec2(0.0f, 1.0f);
+
+        static GLfloat g_vertex_buffer_data[9];
+        g_vertex_buffer_data[0] = triangleVertice1[0];
+        g_vertex_buffer_data[1] = triangleVertice1[1];
+        g_vertex_buffer_data[2] = 0.0f;
+
+        g_vertex_buffer_data[3] = triangleVertice2[0];
+        g_vertex_buffer_data[4] = triangleVertice2[1];
+        g_vertex_buffer_data[5] = 0.0f;
+
+        g_vertex_buffer_data[6] = triangleVertice3[0];
+        g_vertex_buffer_data[7] = triangleVertice3[1];
+        g_vertex_buffer_data[8] = 0.0f;
+
+        glGenBuffers(1, &vertexbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+        return true;
+
+    }
+
+    bool initializeColorbuffer() override {
+        static GLfloat g_color_buffer_data[9];
+        g_color_buffer_data[0] = 1;
+        g_color_buffer_data[1] = 1;
+        g_color_buffer_data[2] = 1;
+
+        g_color_buffer_data[3] = 1;
+        g_color_buffer_data[4] = 1;
+        g_color_buffer_data[5] = 1;
+
+        g_color_buffer_data[6] = 1;
+        g_color_buffer_data[7] = 1;
+        g_color_buffer_data[8] = 1;
+
+        glDeleteBuffers(1, &colorbuffer);
+        glGenBuffers(1, &colorbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
+
+        return true;
+    }
+
+
+};
+
+class Enemy : public GameObject {
+    int hitpoints;
+    glm::vec2 position;
+
+
+public:
+
+    glm::vec2 playerposition_enemy;
+
+    bool initializeVertexbuffer() override {
+        glGenVertexArrays(1, &VertexArrayID);
+        glBindVertexArray(VertexArrayID);
+
+
+
+        vertexbuffer_size = 18;
+
+        std::vector<glm::vec2*> vertices;
+
+
+
+        glm::vec2 triangleVertice1 = glm::vec2(6.0f, 0.0f);
+        glm::vec2 triangleVertice2 = glm::vec2(3.0f, 3 * sqrt(3.0f));
+        glm::vec2 triangleVertice3 = glm::vec2(0.0f, 0.0f);
+
+        glm::vec2 triangleVertice4 = glm::vec2(3.0f, 3 * sqrt(3.0f));
+        glm::vec2 triangleVertice5 = glm::vec2(-3.0f, 3 * sqrt(3.0f));
+        glm::vec2 triangleVertice6 = glm::vec2(0.0f, 0.0f);
+
+        glm::vec2 triangleVertice7 = glm::vec2(-3.0f, 3 * sqrt(3.0f));
+        glm::vec2 triangleVertice8 = glm::vec2(-6.0f, 0);
+        glm::vec2 triangleVertice9 = glm::vec2(0.0f, 0.0f);
+
+        glm::vec2 triangleVertice10 = glm::vec2(-6.0f, 0);
+        glm::vec2 triangleVertice11 = glm::vec2(-3.0f, -3 * sqrt(3.0f));
+        glm::vec2 triangleVertice12 = glm::vec2(0.0f, 0.0f);
+
+        glm::vec2 triangleVertice13 = glm::vec2(-3.0f, -3 * sqrt(3.0f));
+        glm::vec2 triangleVertice14 = glm::vec2(3.0f, -3 * sqrt(3.0f));
+        glm::vec2 triangleVertice15 = glm::vec2(0.0f, 0.0f);
+
+        glm::vec2 triangleVertice16 = glm::vec2(3.0f, -3 * sqrt(3.0f));
+        glm::vec2 triangleVertice17 = glm::vec2(6.0f, 0.0f);
+        glm::vec2 triangleVertice18 = glm::vec2(0.0f, 0.0f);
+        vertices.push_back(&triangleVertice1);
+        vertices.push_back(&triangleVertice2);
+        vertices.push_back(&triangleVertice3);
+        vertices.push_back(&triangleVertice4);
+        vertices.push_back(&triangleVertice5);
+        vertices.push_back(&triangleVertice6);
+        vertices.push_back(&triangleVertice7);
+        vertices.push_back(&triangleVertice8);
+        vertices.push_back(&triangleVertice9);
+        vertices.push_back(&triangleVertice10);
+        vertices.push_back(&triangleVertice11);
+        vertices.push_back(&triangleVertice12);
+        vertices.push_back(&triangleVertice13);
+        vertices.push_back(&triangleVertice14);
+        vertices.push_back(&triangleVertice15);
+        vertices.push_back(&triangleVertice16);
+        vertices.push_back(&triangleVertice17);
+        vertices.push_back(&triangleVertice18);
+
+
+
+
+        static GLfloat g_vertex_buffer_data[54];
+
+        for (int i = 0; i < vertices.size(); i++) {
+            glm::vec2 cur = *vertices[i];
+            g_vertex_buffer_data[3 * i] = float(cur[0]);
+            g_vertex_buffer_data[3 * i + 1] = float(cur[1]);
+            g_vertex_buffer_data[3 * i + 2] = 0.0f;
+            std::cout << "x: " << g_vertex_buffer_data[i] << " y: " << g_vertex_buffer_data[i + 1] << std::endl;
+        }
+
+
+        glGenBuffers(1, &vertexbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+        return true;
+
+    }
+
+    bool initializeColorbuffer() override {
+        static GLfloat g_color_buffer_data[54];
+
+        for (int i = 0; i < 54; i++) {
+            g_color_buffer_data[i] = 1;
+        }
+
+        glDeleteBuffers(1, &colorbuffer);
+        glGenBuffers(1, &colorbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
+
+        return true;
+
+    }
+
+    Enemy(int hp, glm::mat4 translation_g) {
+        hitpoints = hp;
+        translation = translation_g;
+        speed = 0.01f;
+        isActive = false;
+        radius = 0.1f;
+
+    }
+    void update(glm::mat4* mvp) override {
+        glm::mat4 playertranslation = *mvp;
+
+
+        if (!isActive) {
+            translation = glm::mat4(
+                1, 0, 0, 10,
+                0, 1, 0, 10,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            );
+        }
+
+        if (
+            translation[0][3] > 2.0f || translation[0][3] < -2.0f ||
+            translation[1][3] > 2.0f || translation[1][3] < -2.0f
+            ) {
+            isActive = false;
+        }
+
+
+        if (isActive)
+        {
+            translation[0][3] = translation[0][3] + (playerposition_enemy[0] - translation[0][3]) * speed;
+
+            if (translation[1][3] > playerposition_enemy[1]) {
+                translation[1][3] = translation[1][3] - speed;
+                //std::cout << "moving to: y= " << playerposition_enemy[1] << std::endl;
+            }
+            //std::cout << "moving to: x= " << playerposition_enemy[0] << std::endl;
+
+
+
+
+        }
+
+        draw(0.02f);
+    }
+};
 
 
 
