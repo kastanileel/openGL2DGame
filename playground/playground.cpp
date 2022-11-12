@@ -15,10 +15,13 @@ using namespace glm;
 #include <iostream>
 #include <common/shader.hpp>
 
+//new inclued
 #define STB_IMAGE_IMPLEMENTATION
 #include <common/stb_image.h>
+#include <chrono>
 
  
+std::chrono::steady_clock::time_point lastUpdate;
 
 float x = 0;
 float y = 0;
@@ -64,12 +67,15 @@ int main( void )
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
   initializeVertexbuffer();
+
+  lastUpdate = std::chrono::steady_clock::now();
  
 	//start animation loop until escape key is pressed
 	do{
-
-    updateAnimationLoop();
-    
+        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 30) {
+            lastUpdate = std::chrono::steady_clock::now();
+            updateAnimationLoop();
+        }
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );
@@ -126,7 +132,7 @@ void updateAnimationLoop()
 
         int width, height;
         int nrChannels = 4;
-        data = stbi_load("../s1.png", &width, &height, &nrChannels, 4);
+        data = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
 
 
         glGenTextures(1, &texture);
@@ -144,7 +150,7 @@ void updateAnimationLoop()
 
         int width, height;
         int nrChannels = 4;
-        data = stbi_load("../s2.png", &width, &height, &nrChannels, 4);
+        data = stbi_load("../sprites/front_2.png", &width, &height, &nrChannels, 4);
 
 
         glGenTextures(1, &texture);
