@@ -23,7 +23,7 @@ using namespace glm;
 
 //enums for state machine behaviour
 enum PlayerDirection { front, back, left, right, none};
-enum PlayerAnimationState { idle, walk_1, walk_2 };
+
 
 float x = 0;
 float y = 0;
@@ -41,6 +41,7 @@ public:
     int width, height;
     int nrChannels = 4;
     unsigned char* data;
+    std::vector<unsigned char*> sprites;
     //modified
     GLuint colorbuffer;
     GLuint VertexArrayID;
@@ -49,11 +50,12 @@ public:
     float speed;
     float radius;
     bool isActive;
-    virtual void update(PlayerDirection userInput, bool spaceBarPress) = 0;
+    virtual void update(PlayerDirection* userInput, bool* spaceBarPress) = 0;
     virtual void draw() = 0;  
     virtual bool initializeVAOs() = 0;
     virtual bool cleanupVAOs() = 0;
     virtual unsigned char* loadSpriteBasedOnState() = 0;
+    virtual void loadAllSpritesIntoData() = 0;
    
     //detect collisions with other game objects and return all objects that are colliding
     std::vector<GameObject*> checkCollisions(std::vector<GameObject*> gameObjects) {
@@ -86,10 +88,11 @@ public:
 
 
 class Player : public GameObject {
+    int spriteFrequency = 200;
     std::chrono::steady_clock::time_point lastSpriteUpdate;
     int hitpoints;
     PlayerDirection playerDirection;
-    PlayerAnimationState playerAnimationState;
+    bool playerAnimationState;
 public:
     Player(int hp, glm::mat4 translation_g) {
         hitpoints = hp;
@@ -98,29 +101,25 @@ public:
         radius = 0.1f;
         isActive = true;
         playerDirection = front;
-        playerAnimationState = idle;
+        playerAnimationState = true;
+        loadAllSpritesIntoData();
+
     }
-    void update(PlayerDirection userInput, bool spaceBarPress) override {
+    void update(PlayerDirection* userInput, bool* spaceBarPress) override {
 
-        if (playerAnimationState == idle && userInput != none)
-            playerAnimationState = walk_1;
-        else if (userInput == none)
-            playerAnimationState = idle;
-        else if (playerAnimationState == walk_1)
-            playerAnimationState == walk_2;
-        else if (playerAnimationState == walk_2)
-            playerAnimationState = walk_1;
+        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastSpriteUpdate).count()) > spriteFrequency) {
+          
+            playerAnimationState = !playerAnimationState;
+           
+            std::cout << playerAnimationState;
+            playerDirection = *userInput;
 
-        playerDirection = userInput;
-
+            data = loadSpriteBasedOnState();
+        }
         draw();
     }
     void draw() override{
-
-       
-
-        data = loadSpriteBasedOnState();
-        
+      
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
         //glTexSubImage2D(GL_TEXTURE0, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data );
@@ -181,34 +180,31 @@ public:
     }
     unsigned char* loadSpriteBasedOnState() {
 
-        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastSpriteUpdate).count()) <  100) {
+        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastSpriteUpdate).count()) < spriteFrequency) {
             return data;
         }
 
         lastSpriteUpdate = std::chrono::steady_clock::now();
 
         unsigned char* img;
-        img = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
+        img = sprites[0];
 
         switch (playerAnimationState)
         {
-        case idle:
-            img = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
-            break;
-        case walk_1:
+        case true:
             switch (playerDirection)
             {
             case front:
-                img = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
+                img = sprites[0];
                 break;
             case back:
-                img = stbi_load("../sprites/back_1.png", &width, &height, &nrChannels, 4);
+                img = sprites[2];
                 break;
             case left:
-                img = stbi_load("../sprites/left_1.png", &width, &height, &nrChannels, 4);
+                img = sprites[4];
                 break;
             case right:
-                img = stbi_load("../sprites/right_1.png", &width, &height, &nrChannels, 4);
+                img = sprites[6];
                 break;
             case none:
                 break;
@@ -216,20 +212,20 @@ public:
                 break;
             }
             break;
-        case walk_2:
+        case false:
             switch (playerDirection)
             {
             case front:
-                img = stbi_load("../sprites/front_2.png", &width, &height, &nrChannels, 4);
+                img = sprites[1];
                 break;
             case back:
-                img = stbi_load("../sprites/back_2.png", &width, &height, &nrChannels, 4);
+                img = sprites[3];
                 break;
             case left:
-                img = stbi_load("../sprites/left_2.png", &width, &height, &nrChannels, 4);
+                img = sprites[5];
                 break;
             case right:
-                img = stbi_load("../sprites/right_2.png", &width, &height, &nrChannels, 4);
+                img = sprites[7];
                 break;
             case none:
                 break;
@@ -242,6 +238,16 @@ public:
         }
 
         return img;
+    }
+    void loadAllSpritesIntoData() override {
+        sprites.push_back( stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/front_2.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/back_1.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/back_2.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/left_1.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/left_2.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/right_1.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/right_2.png", &width, &height, &nrChannels, 4));
     }
     bool initializeVAOs() override{
         glGenVertexArrays(1, &VertexArrayID);
@@ -322,7 +328,7 @@ public:
         radius = 0.1f;
 
     }
-    void update(PlayerDirection userInput, bool spaceBarPress) override {
+    void update(PlayerDirection* userInput, bool* spaceBarPress) override {
     }
 };
 
@@ -362,7 +368,7 @@ int main( void )
  
 	//start animation loop until escape key is pressed
 	do{
-        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 3) {
+        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 5) {
             lastUpdate = std::chrono::steady_clock::now();
             updateAnimationLoop();
         }
@@ -385,31 +391,32 @@ int main( void )
 
 void updateAnimationLoop()
 {
+    bool shooting = false;
     userInput = none;
     if (glfwGetKey(window, GLFW_KEY_SPACE)) {
-
+        shooting = true;
     }
 
     if (glfwGetKey(window, GLFW_KEY_W)) {
-        y += 0.001f;
+        y += 0.01f;
         userInput = back;
     }
     if (glfwGetKey(window, GLFW_KEY_S)) {
         userInput = front;
-        y -= 0.001f;
+        y -= 0.01f;
     }
     if (glfwGetKey(window, GLFW_KEY_A)) {
         userInput = left;
-        x -= 0.001f;
+        x -= 0.01f;
     }
     if (glfwGetKey(window, GLFW_KEY_D)) {
         userInput = right;
-        x += 0.001f;
+        x += 0.01f;
     }
 
     for (int i = 0; i < gameObjects.size(); i++)
     {
-        gameObjects[i]->update(userInput, true);
+        gameObjects[i]->update(&userInput, &shooting);
     }
 
   // Swap buffers
