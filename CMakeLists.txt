@@ -1,6 +1,6 @@
 # CMake entry point
 cmake_minimum_required (VERSION 3.0)
-project (NoNameShooter)
+project (OpenGL-Template)
 
 find_package(OpenGL REQUIRED)
 

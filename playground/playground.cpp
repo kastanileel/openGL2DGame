@@ -25,12 +25,14 @@ float y = 0;
 
 float xRes = 1920;
 float yRes = 1080;
+bool state = false;
 
 glm::mat2 myR;
 
 GLuint uvbuffer;
 GLuint textureSamplerID;
 GLuint texture;
+unsigned char* data;
 
 
 
@@ -48,18 +50,20 @@ int main( void )
   // Create and compile our GLSL program from the shaders
   programID = LoadShaders("SimpleVertexShader.vertexshader", "SimpleFragmentShader.fragmentshader");
 
-  int width, height, nrChannels;
-  unsigned char* data = stbi_load("../container.jpg", &width, &height, &nrChannels, 0);
+  int width, height;
+  int nrChannels = 4;
+  data = stbi_load("../s1.png", &width, &height, &nrChannels, 4);
   
- 
 
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+  //glTexSubImage2D(GL_TEXTURE0, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data );
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
   glGenerateMipmap(GL_TEXTURE_2D);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
+  initializeVertexbuffer();
  
 	//start animation loop until escape key is pressed
 	do{
@@ -83,34 +87,33 @@ int main( void )
 void updateAnimationLoop()
 {
 
-    
-    
-    
-   /* glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    // set the texture wrapping/filtering options (on the currently bound texture object)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // load and generate the texture
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load("../container.jpg", &width, &height, &nrChannels, 0);
-    if (data)
-    {
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
-        glGenerateTextureMipmap(GL_TEXTURE_2D);
+    /* glGenTextures(1, &texture);
+     glBindTexture(GL_TEXTURE_2D, texture);
+     // set the texture wrapping/filtering options (on the currently bound texture object)
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+     // load and generate the texture
+     int width, height, nrChannels;
+     unsigned char* data = stbi_load("../container.jpg", &width, &height, &nrChannels, 0);
+     if (data)
+     {
 
-        std::cout << "image loades sucessfully";
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-    */
+         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+         glGenerateTextureMipmap(GL_TEXTURE_2D);
+
+         std::cout << "image loades sucessfully";
+     }
+     else
+     {
+         std::cout << "Failed to load texture" << std::endl;
+     }
+     stbi_image_free(data);
+     */
 
 
     if (glfwGetKey(window, GLFW_KEY_SPACE)) {
@@ -120,11 +123,37 @@ void updateAnimationLoop()
         y += 0.001f;
         myR = glm::mat2(1, 0,
             0, 1);
+
+        int width, height;
+        int nrChannels = 4;
+        data = stbi_load("../s1.png", &width, &height, &nrChannels, 4);
+
+
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        //glTexSubImage2D(GL_TEXTURE0, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data );
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
     if (glfwGetKey(window, GLFW_KEY_S)) {
         myR = glm::mat2(-1, 0,
             0, -1);
         y -= 0.001f;
+
+        int width, height;
+        int nrChannels = 4;
+        data = stbi_load("../s2.png", &width, &height, &nrChannels, 4);
+
+
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        //glTexSubImage2D(GL_TEXTURE0, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data );
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
     if (glfwGetKey(window, GLFW_KEY_A)) {
         x -= 0.001f;
@@ -137,9 +166,12 @@ void updateAnimationLoop()
             1, 0);
     }
 
+    float ver = xRes / yRes;
+    float size = 0.2f;
+
     glm::mat4 mv = glm::mat4(
-        1, 0, 0, x,
-        0, 1, 0, y,
+      -1 * size, 0, 0, x,
+        0, ver * -1 *size, 0, y,
         0, 0, 1, 0,
         0, 0, 0, 1);
 
@@ -147,7 +179,6 @@ void updateAnimationLoop()
     GLfloat matrix = glGetUniformLocation(programID, "mv");
     glUniformMatrix4fv(matrix, 1, GL_FALSE, &mv[0][0]);
 
-  initializeVertexbuffer();
   // Clear the screen
   glClear(GL_COLOR_BUFFER_BIT);
 
