@@ -20,15 +20,16 @@ using namespace glm;
 #include <chrono>
 #include <vector>
 
- 
-std::chrono::steady_clock::time_point lastUpdate;
+
+//enums for state machine behaviour
+enum PlayerDirection { front, back, left, right, none};
+enum PlayerAnimationState { idle, walk_1, walk_2 };
 
 float x = 0;
 float y = 0;
 
 float xRes = 1920;
 float yRes = 1080;
-
 
 class GameObject {
 public:
@@ -37,6 +38,8 @@ public:
     GLuint uvbuffer;
     GLuint textureSamplerID;
     GLuint texture;
+    int width, height;
+    int nrChannels = 4;
     unsigned char* data;
     //modified
     GLuint colorbuffer;
@@ -46,10 +49,11 @@ public:
     float speed;
     float radius;
     bool isActive;
-    virtual void update(glm::mat4* mvp) = 0;
-    virtual void draw(float scale) = 0;  
+    virtual void update(PlayerDirection userInput, bool spaceBarPress) = 0;
+    virtual void draw() = 0;  
     virtual bool initializeVAOs() = 0;
     virtual bool cleanupVAOs() = 0;
+    virtual unsigned char* loadSpriteBasedOnState() = 0;
    
     //detect collisions with other game objects and return all objects that are colliding
     std::vector<GameObject*> checkCollisions(std::vector<GameObject*> gameObjects) {
@@ -82,8 +86,10 @@ public:
 
 
 class Player : public GameObject {
+    std::chrono::steady_clock::time_point lastSpriteUpdate;
     int hitpoints;
-
+    PlayerDirection playerDirection;
+    PlayerAnimationState playerAnimationState;
 public:
     Player(int hp, glm::mat4 translation_g) {
         hitpoints = hp;
@@ -91,29 +97,30 @@ public:
         speed = 0.02f;
         radius = 0.1f;
         isActive = true;
+        playerDirection = front;
+        playerAnimationState = idle;
     }
-    void update(glm::mat4* mvp) override {
-        glm::mat4 finished_mvp = *mvp;
+    void update(PlayerDirection userInput, bool spaceBarPress) override {
 
-        finished_mvp[0][3] = finished_mvp[0][3] * speed;
-        finished_mvp[1][3] = finished_mvp[1][3] * speed;
+        if (playerAnimationState == idle && userInput != none)
+            playerAnimationState = walk_1;
+        else if (userInput == none)
+            playerAnimationState = idle;
+        else if (playerAnimationState == walk_1)
+            playerAnimationState == walk_2;
+        else if (playerAnimationState == walk_2)
+            playerAnimationState = walk_1;
 
-        translation = translation * finished_mvp;
+        playerDirection = userInput;
 
-        glm::mat4 test = *mvp;
-
-        //std::cout << test[0][3] << std::endl;
-        //std::cout << test[1][3] << std::endl;
-        draw(0.1f);
-
-
+        draw();
     }
-    void draw(float scale) override{
-        int width, height;
-        int nrChannels = 4;
-        data = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
+    void draw() override{
 
+       
 
+        data = loadSpriteBasedOnState();
+        
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
         //glTexSubImage2D(GL_TEXTURE0, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data );
@@ -121,6 +128,7 @@ public:
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
 
         float ver = xRes / yRes;
         float size = 0.2f;
@@ -170,6 +178,70 @@ public:
         glDrawArrays(GL_TRIANGLES, 0, vertexbuffer_size); // 3 indices starting at 0 -> 1 triangle
 
         glDisableVertexAttribArray(0);
+    }
+    unsigned char* loadSpriteBasedOnState() {
+
+        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastSpriteUpdate).count()) <  100) {
+            return data;
+        }
+
+        lastSpriteUpdate = std::chrono::steady_clock::now();
+
+        unsigned char* img;
+        img = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
+
+        switch (playerAnimationState)
+        {
+        case idle:
+            img = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
+            break;
+        case walk_1:
+            switch (playerDirection)
+            {
+            case front:
+                img = stbi_load("../sprites/front_1.png", &width, &height, &nrChannels, 4);
+                break;
+            case back:
+                img = stbi_load("../sprites/back_1.png", &width, &height, &nrChannels, 4);
+                break;
+            case left:
+                img = stbi_load("../sprites/left_1.png", &width, &height, &nrChannels, 4);
+                break;
+            case right:
+                img = stbi_load("../sprites/right_1.png", &width, &height, &nrChannels, 4);
+                break;
+            case none:
+                break;
+            default:
+                break;
+            }
+            break;
+        case walk_2:
+            switch (playerDirection)
+            {
+            case front:
+                img = stbi_load("../sprites/front_2.png", &width, &height, &nrChannels, 4);
+                break;
+            case back:
+                img = stbi_load("../sprites/back_2.png", &width, &height, &nrChannels, 4);
+                break;
+            case left:
+                img = stbi_load("../sprites/left_2.png", &width, &height, &nrChannels, 4);
+                break;
+            case right:
+                img = stbi_load("../sprites/right_2.png", &width, &height, &nrChannels, 4);
+                break;
+            case none:
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            break;
+        }
+
+        return img;
     }
     bool initializeVAOs() override{
         glGenVertexArrays(1, &VertexArrayID);
@@ -250,47 +322,15 @@ public:
         radius = 0.1f;
 
     }
-    void update(glm::mat4* mvp) override {
-        glm::mat4 playertranslation = *mvp;
-
-
-        if (!isActive) {
-            translation = glm::mat4(
-                1, 0, 0, 10,
-                0, 1, 0, 10,
-                0, 0, 1, 0,
-                0, 0, 0, 1
-            );
-        }
-
-        if (
-            translation[0][3] > 2.0f || translation[0][3] < -2.0f ||
-            translation[1][3] > 2.0f || translation[1][3] < -2.0f
-            ) {
-            isActive = false;
-        }
-
-
-        if (isActive)
-        {
-            translation[0][3] = translation[0][3] + (playerposition_enemy[0] - translation[0][3]) * speed;
-
-            if (translation[1][3] > playerposition_enemy[1]) {
-                translation[1][3] = translation[1][3] - speed;
-                //std::cout << "moving to: y= " << playerposition_enemy[1] << std::endl;
-            }
-            //std::cout << "moving to: x= " << playerposition_enemy[0] << std::endl;
-
-
-
-
-        }
-
-        draw(0.02f);
+    void update(PlayerDirection userInput, bool spaceBarPress) override {
     }
 };
 
+// public variables
+std::chrono::steady_clock::time_point lastUpdate;
+
 std::vector<GameObject*> gameObjects;
+PlayerDirection userInput = none;
 
 int main( void )
 {
@@ -322,7 +362,7 @@ int main( void )
  
 	//start animation loop until escape key is pressed
 	do{
-        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 30) {
+        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 3) {
             lastUpdate = std::chrono::steady_clock::now();
             updateAnimationLoop();
         }
@@ -345,26 +385,31 @@ int main( void )
 
 void updateAnimationLoop()
 {
+    userInput = none;
     if (glfwGetKey(window, GLFW_KEY_SPACE)) {
 
     }
 
     if (glfwGetKey(window, GLFW_KEY_W)) {
         y += 0.001f;
+        userInput = back;
     }
     if (glfwGetKey(window, GLFW_KEY_S)) {
+        userInput = front;
         y -= 0.001f;
     }
     if (glfwGetKey(window, GLFW_KEY_A)) {
+        userInput = left;
         x -= 0.001f;
     }
     if (glfwGetKey(window, GLFW_KEY_D)) {
+        userInput = right;
         x += 0.001f;
     }
 
     for (int i = 0; i < gameObjects.size(); i++)
     {
-        gameObjects[i]->draw(1);
+        gameObjects[i]->update(userInput, true);
     }
 
   // Swap buffers
