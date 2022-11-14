@@ -1,25 +1,5 @@
-
-
 // Input vertex data, different for all executions of this shader.
 
-/*layout(location = 0) in vec3 vertexPosition_modelspace;
-uniform mat4 mv;
-
-out vec4 vertexColor;
-out vec2 TexCoords;
-
-
-void main(){
-    vec4 p;
-    p.xyz = vertexPosition_modelspace;
-    p.w = 1;
-    gl_Position = p*mv;
-  
-    TexCoords = vertex.zw;
-
-
-}
-*/
 
 #version 330 core
 uniform mat4 mv;
