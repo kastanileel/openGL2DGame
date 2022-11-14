@@ -20,6 +20,7 @@ using namespace glm;
 #include <chrono>
 #include <vector>
 #include <memory>
+#include <random>
 
 
 //enums for state machine behaviour
@@ -574,20 +575,20 @@ public:
 
         if (x > translation[0][3])
         {
-            translation[0][3] += 0.001f;
+            translation[0][3] += 0.005f;
         }
         else
         {
-            translation[0][3] -= 0.001f;
+            translation[0][3] -= 0.005f;
         }
 
         if (y > translation[1][3])
         {
-            translation[1][3] += 0.001f;
+            translation[1][3] += 0.005f;
         }
         else
         {
-            translation[1][3] -= 0.001f;
+            translation[1][3] -= 0.005f;
         }
         this->draw();
     }
@@ -721,6 +722,8 @@ public:
 // public variables
 std::chrono::steady_clock::time_point lastUpdate;
 std::chrono::steady_clock::time_point lastShoot;
+std::chrono::steady_clock::time_point lastGhostSpawn;
+int cooldown = 2000;
 
 std::vector<std::shared_ptr<GameObject>> gameObjects;
 
@@ -783,18 +786,40 @@ int main( void )
 
 void updateAnimationLoop()
 {
-    if (test) {
+    if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastGhostSpawn).count()) > cooldown) {
+        lastGhostSpawn = std::chrono::steady_clock::now();
 
-        std::shared_ptr<Enemy> e = std::make_shared<Enemy>(10, -1, -1);
+        std::shared_ptr<Enemy> e;
+
+        std::srand(std::time(nullptr));
+        int rand = std::rand() %4 +1;
+        switch (rand)
+        {
+        case 1:
+            e  = std::make_shared<Enemy>(10, -1, -1);
+            break;
+        case 2:
+            e = std::make_shared<Enemy>(10, -1, 1);
+            break;
+        case 3:
+            e = std::make_shared<Enemy>(10, 1, 1);
+            break;
+        case 4:
+            e = std::make_shared<Enemy>(10, 1, -1);
+            break;
+        default:
+            break;
+        }
+
+         
 
         e.get()->initializeVAOs();
 
         gameObjects.push_back(e);
-
-
-
-
         test = false;
+
+        if (cooldown > 200)
+            cooldown -= 20;
     }
     bool shooting = false;
     userInput = none;
