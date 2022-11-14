@@ -1,13 +1,13 @@
 # openGL2DGame
 # A 2D ghost shooter with sprite animation
-***
 
-##Controlls:
+
+## Controlls:
  - **Walking:** WASD
  - **Shooting:** Spacebar
  - **Collision with ghost** closes the game
   
-##Assets:
+## Assets:
 Used 2D character spritesheet from: https://route1rodent.itch.io/16x16-rpg-character-sprite-sheet
 
 If the game is running **slowly** readjust the speed by changing `float gameSpeed` in `playground.cpp`:
