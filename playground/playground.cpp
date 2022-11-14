@@ -31,7 +31,7 @@ float y = 0;
 
 float xRes = 1920;
 float yRes = 1080;
-
+ 
 bool test = true;
 
 class GameObject {
@@ -47,6 +47,7 @@ public:
     std::vector<unsigned char*> sprites;
     //modified
     GLuint colorbuffer;
+    GLfloat matrix;
     GLuint VertexArrayID;
     GLuint vertexbuffer_size;
     glm::mat4 translation;
@@ -91,7 +92,8 @@ public:
 
 
 class Player : public GameObject {
-    int spriteFrequency = 200;
+    int spriteFrequency = 100;
+    bool a;
     std::chrono::steady_clock::time_point lastSpriteUpdate;
     int hitpoints;
     PlayerDirection playerDirection;
@@ -106,10 +108,12 @@ public:
         playerDirection = front;
         playerAnimationState = true;
         loadAllSpritesIntoData();
+      
 
     }
+   
     void update(PlayerDirection* userInput, bool* spaceBarPress) override {
-
+       
         if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastSpriteUpdate).count()) > spriteFrequency) {
           
             playerAnimationState = !playerAnimationState;
@@ -118,7 +122,7 @@ public:
 
             data = loadSpriteBasedOnState();
         }
-        draw();
+        this->draw();
     }
     void draw() override{
       
@@ -133,7 +137,6 @@ public:
 
         float ver = xRes / yRes;
         float size = 0.2f;
-
         glm::mat4 mv = glm::mat4(
             -1 * size, 0, 0, x,
             0, ver * -1 * size, 0, y,
@@ -144,9 +147,7 @@ public:
         GLfloat matrix = glGetUniformLocation(programID, "mv");
         glUniformMatrix4fv(matrix, 1, GL_FALSE, &mv[0][0]);
 
-        // Clear the screen
-        glClear(GL_COLOR_BUFFER_BIT);
-
+    
         // Use our shader
         glUseProgram(programID);
 
@@ -178,7 +179,6 @@ public:
         // Draw the triangle !
         glDrawArrays(GL_TRIANGLES, 0, vertexbuffer_size); // 3 indices starting at 0 -> 1 triangle
 
-        glDisableVertexAttribArray(0);
     }
     unsigned char* loadSpriteBasedOnState() {
 
@@ -189,7 +189,7 @@ public:
         lastSpriteUpdate = std::chrono::steady_clock::now();
 
         unsigned char* img;
-        img = sprites[0];
+        img = sprites[8];
 
         switch (playerAnimationState)
         {
@@ -250,6 +250,7 @@ public:
         sprites.push_back( stbi_load("../sprites/left_2.png", &width, &height, &nrChannels, 4));
         sprites.push_back( stbi_load("../sprites/right_1.png", &width, &height, &nrChannels, 4));
         sprites.push_back( stbi_load("../sprites/right_2.png", &width, &height, &nrChannels, 4));
+        sprites.push_back( stbi_load("../sprites/idle.png", &width, &height, &nrChannels, 4));
     }
     bool initializeVAOs() override{
         glGenVertexArrays(1, &VertexArrayID);
@@ -321,17 +322,171 @@ class Enemy : public GameObject {
     int hitpoints;
     glm::vec2 position;
 public:
-    glm::vec2 playerposition_enemy;
-    Enemy(int hp, glm::mat4 translation_g) {
+    Enemy(int hp, int x, int y) {
         hitpoints = hp;
-        translation = translation_g;
+        float size = 0.2f;
+        float ver = xRes / yRes;
+
+
+        translation = glm::mat4(
+            -1 * size,0,0,x,
+            0,-1 * size * ver,0,y,
+            0,0,1,0,
+            0,0,0,1
+        );
         speed = 0.01f;
         isActive = false;
         radius = 0.1f;
+        loadAllSpritesIntoData();
+        data = loadSpriteBasedOnState();
+    }
+   
+    void update(PlayerDirection* userInput, bool* spaceBarPress) override {
+        if (x > translation[0][3])
+        {
+            translation[0][3] += 0.001f;
+        }
+        else
+        {
+            translation[0][3] -= 0.001f;
+        }
+
+        if (y > translation[1][3])
+        {
+            translation[1][3] += 0.001f;
+        }
+        else
+        {
+            translation[1][3] -= 0.001f;
+        }
+        this->draw();
+    }
+    void draw() override {
+       
+
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        //glTexSubImage2D(GL_TEXTURE0, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data );
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+
+        
+
+
+        GLfloat matrix = glGetUniformLocation(programID, "mv");
+        glUniformMatrix4fv(matrix, 1, GL_FALSE, &translation[0][0]);
+
+        // Clear the screen
+       
+
+        // Use our shader
+        glUseProgram(programID);
+
+        // 1rst attribute buffer : vertices
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glVertexAttribPointer(
+            0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+            3,  // size
+            GL_FLOAT,           // type
+            GL_FALSE,           // normalized?
+            0,                  // stride
+            (void*)0            // array buffer offset
+        );
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(textureSamplerID, 0);
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+        glVertexAttribPointer(
+            2,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            0,
+            (void*)0
+        );
+        // Draw the triangle !
+        glDrawArrays(GL_TRIANGLES, 0, vertexbuffer_size); // 3 indices starting at 0 -> 1 triangle
+
+        
+    }
+    bool initializeVAOs() override {
+        glGenVertexArrays(1, &VertexArrayID);
+        glBindVertexArray(VertexArrayID);
+
+        vertexbuffer_size = 6;
+
+        glm::vec2 triangleVertice1 = glm::vec2(0.0f, 0.0f);
+        glm::vec2 triangleVertice2 = glm::vec2(0.0f, 1.0f);
+        glm::vec2 triangleVertice3 = glm::vec2(1.0f, 1.0f);
+
+        glm::vec2 secTriangleVertice1 = glm::vec2(0.0f, 0.0f);
+        glm::vec2 secTriangleVertice2 = glm::vec2(1.0f, 1.0f);
+        glm::vec2 secTriangleVertice3 = glm::vec2(1.0f, 0.0f);
+
+        GLfloat g_vertex_buffer_data[18];
+        g_vertex_buffer_data[0] = triangleVertice1[0];
+        g_vertex_buffer_data[1] = triangleVertice1[1];
+        g_vertex_buffer_data[2] = 0.0f;
+        g_vertex_buffer_data[3] = triangleVertice2[0];
+        g_vertex_buffer_data[4] = triangleVertice2[1];
+        g_vertex_buffer_data[5] = 0.0f;
+        g_vertex_buffer_data[6] = triangleVertice3[0];
+        g_vertex_buffer_data[7] = triangleVertice3[1];
+        g_vertex_buffer_data[8] = 0.0f;
+        g_vertex_buffer_data[9] = secTriangleVertice1[0];
+        g_vertex_buffer_data[10] = secTriangleVertice1[1];
+        g_vertex_buffer_data[11] = 0.0f;
+        g_vertex_buffer_data[12] = secTriangleVertice2[0];
+        g_vertex_buffer_data[13] = secTriangleVertice2[1];
+        g_vertex_buffer_data[14] = 0.0f;
+        g_vertex_buffer_data[15] = secTriangleVertice3[0];
+        g_vertex_buffer_data[16] = secTriangleVertice3[1];
+        g_vertex_buffer_data[17] = 0.0f;
+
+        glGenBuffers(1, &vertexbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+
+
+
+        textureSamplerID = glGetUniformLocation(programID, "myTextureSampler");
+
+        static const GLfloat g_uv_buffer_date[] = {
+            0.0f, 0.0f,
+            0.0f, 1.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 1.0f,
+            1.0f, 0.0f
+        };
+
+        glGenBuffers(1, &uvbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_date), g_uv_buffer_date, GL_STATIC_DRAW);
+
+        return true;
+    }
+    bool cleanupVAOs() override {
+        // Cleanup VBO
+        glDeleteBuffers(1, &vertexbuffer);
+        glDeleteVertexArrays(1, &VertexArrayID);
+        return true;
+    }
+    unsigned char* loadSpriteBasedOnState() override{
+        return sprites[0];
+    }
+    void loadAllSpritesIntoData() override {
+        sprites.push_back(stbi_load("../sprites/ghost.png", &width, &height, &nrChannels, 4));
 
     }
-    void update(PlayerDirection* userInput, bool* spaceBarPress) override {
-    }
+
 };
 
 // public variables
@@ -377,16 +532,13 @@ int main( void )
             updateAnimationLoop();
 
             if (test) {
-                glm::mat4 transr = glm::mat4(
-                    1, 0, 0, 1,
-                    0, 1, 0, 1,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1
-                );
-                std::shared_ptr<Player> p = std::make_shared<Player>(10, transr);
+               
+                std::shared_ptr<Enemy> e = std::make_shared<Enemy>(10, -1, -1);
 
-                p.get()->initializeVAOs();
-                gameObjects.push_back(p);
+                e.get()->initializeVAOs();
+
+                gameObjects.push_back(e);
+
                 
                 
                
@@ -412,6 +564,7 @@ int main( void )
 
 void updateAnimationLoop()
 {
+    std::cout << "___________ " << "\n";
     bool shooting = false;
     userInput = none;
     if (glfwGetKey(window, GLFW_KEY_SPACE)) {
@@ -435,12 +588,14 @@ void updateAnimationLoop()
         x += 0.01f;
     }
 
+    glClear(GL_COLOR_BUFFER_BIT);
+
     for (int i = 0; i < gameObjects.size(); i++) {
         gameObjects[i].get()->update(&userInput, &shooting);
     }
      
 
-
+    glDisableVertexAttribArray(0);
   // Swap buffers
   glfwSwapBuffers(window);
   glfwPollEvents();
