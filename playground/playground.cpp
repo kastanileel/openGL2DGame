@@ -35,6 +35,7 @@ float yRes = 1080;
 bool playerHit = false;
  
 bool test = true;
+float gameSpeed = 5.0f;
 
 std::vector<vec2> bulletsPos;
 
@@ -97,7 +98,7 @@ public:
 
 
 class Player : public GameObject {
-    int spriteFrequency = 100;
+    int spriteFrequency = 150;
     bool a;
     std::chrono::steady_clock::time_point lastSpriteUpdate;
     int hitpoints;
@@ -356,19 +357,19 @@ public:
         switch (direction)
         {
         case front:
-            position.y -= 0.05f;
+            position.y -= 0.018f * gameSpeed;
             break;
         case back:
-            position.y += 0.05f;
+            position.y += 0.018f * gameSpeed;
             break;
         case left:
-            position.x -= 0.05f;
+            position.x -= 0.018f * gameSpeed;
             break;
         case right:
-            position.x += 0.05f;
+            position.x += 0.018f * gameSpeed;
             break;
         case none:
-            position.y -= 0.05f;
+            position.y -= 0.018f * gameSpeed;
             break;
         default:
             break;
@@ -558,7 +559,7 @@ public:
 
 
             float dist = sqrt(dx * dx + dy * dy);
-            float mindistance = radius*2;
+            float mindistance = radius;
             if (dist < mindistance) {
 
                 std::cout << "bullet" << std::endl;
@@ -575,20 +576,20 @@ public:
 
         if (x > translation[0][3])
         {
-            translation[0][3] += 0.005f;
+            translation[0][3] += 0.001f * gameSpeed;
         }
         else
         {
-            translation[0][3] -= 0.005f;
+            translation[0][3] -= 0.001f * gameSpeed;
         }
 
         if (y > translation[1][3])
         {
-            translation[1][3] += 0.005f;
+            translation[1][3] += 0.001f * gameSpeed;
         }
         else
         {
-            translation[1][3] -= 0.005f;
+            translation[1][3] -= 0.001f * gameSpeed;
         }
         this->draw();
     }
@@ -761,7 +762,7 @@ int main( void )
  
 	//start animation loop until escape key is pressed
 	do{
-        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 5) {
+        if ((std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastUpdate).count()) > 33) {
             lastUpdate = std::chrono::steady_clock::now();
             updateAnimationLoop();
 
@@ -828,20 +829,20 @@ void updateAnimationLoop()
     }
 
     if (glfwGetKey(window, GLFW_KEY_W)) {
-        y += 0.01f;
+        y += 0.005f * gameSpeed;
         userInput = back;
     }
     if (glfwGetKey(window, GLFW_KEY_S)) {
         userInput = front;
-        y -= 0.01f;
+        y -= 0.005f * gameSpeed;
     }
     if (glfwGetKey(window, GLFW_KEY_A)) {
         userInput = left;
-        x -= 0.01f;
+        x -= 0.005f * gameSpeed;
     }
     if (glfwGetKey(window, GLFW_KEY_D)) {
         userInput = right;
-        x += 0.01f;
+        x += 0.005f * gameSpeed;
     }
 
     bulletsPos.clear();
