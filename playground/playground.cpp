@@ -67,32 +67,7 @@ public:
     virtual void loadAllSpritesIntoData() = 0;
     virtual void checkCollisions() = 0;
    
-    //detect collisions with other game objects and return all objects that are colliding
-    std::vector<GameObject*> checkCollisions(std::vector<GameObject*> gameObjects) {
-        std::vector<GameObject*> collidedObjects;
-
-        if (isActive) {
-            for each (GameObject * cur in gameObjects)
-            {
-                if (cur != this) {
-                    float dx = translation[0][3] - cur->translation[0][3];
-                    float dy = translation[1][3] - cur->translation[1][3];
-
-
-                    float dist = sqrt(dx * dx + dy * dy);
-                    float mindistance = radius + cur->radius;
-                    if (dist < mindistance) {
-                        collidedObjects.push_back(cur);
-                        std::cout << "Collision detected!" << std::endl;
-                    }
-
-
-                }
-            }
-        }
-
-        return collidedObjects;
-    }
+   
 
 };
 
@@ -144,12 +119,12 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-
-        float ver = xRes / yRes;
+        // normalized aspect ratio
+        float nAR = xRes / yRes;
         float size = 0.2f;
         glm::mat4 mv = glm::mat4(
             -1 * size, 0, 0, x,
-            0, ver * -1 * size, 0, y,
+            0, nAR * -1 * size, 0, y,
             0, 0, 1, 0,
             0, 0, 0, 1);
 
@@ -512,6 +487,7 @@ public:
     }
 };
 
+
 class Enemy : public GameObject {
     int hitpoints;
     glm::vec2 position;
@@ -720,6 +696,7 @@ public:
     }
 
 };
+
 // public variables
 std::chrono::steady_clock::time_point lastUpdate;
 std::chrono::steady_clock::time_point lastShoot;
@@ -812,8 +789,6 @@ void updateAnimationLoop()
             break;
         }
 
-         
-
         e.get()->initializeVAOs();
 
         gameObjects.push_back(e);
@@ -822,8 +797,11 @@ void updateAnimationLoop()
         if (cooldown > 200)
             cooldown -= 20;
     }
+
     bool shooting = false;
+
     userInput = none;
+
     if (glfwGetKey(window, GLFW_KEY_SPACE)) {
         shooting = true;
     }
@@ -884,7 +862,7 @@ void updateAnimationLoop()
 
   
 
-    glDisableVertexAttribArray(0);
+   glDisableVertexAttribArray(0);
   // Swap buffers
   glfwSwapBuffers(window);
   glfwPollEvents();
