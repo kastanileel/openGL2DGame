@@ -6,7 +6,7 @@
  - **Shooting:** Spacebar
  - **Collision with ghost** closes the game
 
-### For an **generell overview** about the **gameflow**, have look at the `updateAnimationLoop()` and the `main()` function.
+### For an **generell overview** about the **gameflow**, have a look at the `updateAnimationLoop()` and the `main()` function.
 
  
 ## Features:
